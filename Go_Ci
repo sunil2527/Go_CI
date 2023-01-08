@@ -1,0 +1,98 @@
+pipeline {
+    agent any
+     tools {
+        go '1.13'
+    }
+     environment {
+        GO113MODULE = 'on'
+        CGO_ENABLED = 0 
+        GOPATH = "${JENKINS_HOME}/jobs/${JOB_NAME}/builds/${BUILD_ID}"
+    }
+    stages {
+        stage('Cloning Repository') {
+            steps {
+                echo 'Checkout repo'
+                git branch: 'main', credentialsId: 'goci', url: 'https://github.com/sunil2527/Go_CI.git'
+            }
+        }
+        stage('Credential scanning') {
+            steps {
+                echo 'Credential scanning'
+               sh 'gitleaks --repo=https://github.com/sunil2527/Go_CI.git --report=leaks.json'
+            }
+        }
+         
+         stage('Pre Hooks') {
+            steps {
+                echo 'Installing dependencies'
+                catchError(buildResult: 'SUCCESS', stageResult: 'SUCCESS') {
+                  sh  'go get -v -t -d ./...'
+                  
+            
+            }
+        }
+    }
+      stage('linters') {
+            steps {
+                echo 'Installing dependencies'
+                  sh  '''
+                  curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.50.1
+                  curl -sfL https://raw.githubusercontent.com/securego/gosec/master/install.sh | sh -s -- -b $(go env GOPATH)/bin latest
+                  '''
+            }
+        }
+    
+        stage('FuntionalityTest') {
+            steps {
+                 withEnv(["PATH+GO=${GOPATH}/bin"]){
+                catchError(buildResult: 'SUCCESS', stageResult: 'SUCCESS') {
+                    sh '''
+                    cd employee
+                    golangci-lint run ./... > ~/workspace/${JOB_NAME}/output.txt 2> o
+                     '''
+                }
+                }
+            }
+               
+        }
+        stage('Static analysis') {
+            steps {
+                 withEnv(["PATH+GO=${GOPATH}/bin"]){
+                catchError(buildResult: 'SUCCESS', stageResult: 'SUCCESS') {
+                    sh 'gosec -fmt=text -out=linto.txt employee'
+                }
+                }
+            }
+               
+        }
+        stage('Dependency check') {
+            steps {
+                echo 'Checking dependencies'
+                 withEnv(["PATH+GO=${GOPATH}/bin"]){
+                     dependencyCheck additionalArguments: '', odcInstallation: 'OS_dependency_check'
+                     dependencyCheckPublisher pattern: ''
+            }
+        }
+    }
+    stage('license finder') {
+            steps {
+                echo 'Checking dependencies'
+                sh '''
+                 sudo apt install npm
+                sudo apt  install ruby
+                sudo gem install license_finder
+                license_finder report
+            '''
+            }
+        }
+    
+
+        stage('Build') {
+            steps {
+                sh 'cd employee && go build'
+                
+            }
+        }
+        
+    }
+}
