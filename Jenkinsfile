@@ -19,7 +19,7 @@ pipeline {
               stage('credScanner') {
                 steps {
                  script {
-                  credScanner.cred("repourl": "https://github.com/Snatak-Fantastic4/Salary.git" "branch": "main" "access-token": "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" )
+                  credScanner.cred("repourl": "https://github.com/Snatak-Fantastic4/Salary.git", "branch": "main", "access-token": "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" )
                 }
             }
         }
