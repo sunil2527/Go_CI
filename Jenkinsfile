@@ -9,7 +9,7 @@ pipeline {
         stage('checkout') {
             steps {
               script{
-              checkout.repo_clone("Repo_Url": "https://github.com/Snatak-Fantastic4/Salary.git", "Repo_Branch": "main", "Repo_Credential": "newtoken")
+              checkout.repo_clone("Repo_Url": "https://github.com/Snatak-Fantastic4/Salary.git", "Repo_Branch": "main", "Repo_Credential": "new")
               }
             
             }
